@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Data;
 using Dapper;
 using Dreamine.Database.Abstractions;
@@ -10,6 +11,11 @@ namespace Dreamine.Database.Core.Providers;
 /// </summary>
 public abstract class DatabaseProviderBase : IDatabaseProvider
 {
+    private enum SqlKind { Insert, Update, Delete }
+
+    // Keyed by (entity type, provider kind, sql kind) — avoids re-building identical SQL on every call.
+    private static readonly ConcurrentDictionary<(Type, DatabaseProviderKind, SqlKind), string> SqlCache = new();
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DatabaseProviderBase"/> class.
     /// </summary>
@@ -149,7 +155,7 @@ public abstract class DatabaseProviderBase : IDatabaseProvider
         ArgumentNullException.ThrowIfNull(entity);
 
         using var connection = CreateOpenedConnection();
-        return connection.Execute(BuildInsertSql(DatabaseEntityMap.Create<T>()), entity) > 0;
+        return connection.Execute(GetOrBuildSql<T>(SqlKind.Insert), entity) > 0;
     }
 
     public async Task<bool> InsertAsync<T>(T entity, CancellationToken cancellationToken = default)
@@ -159,7 +165,7 @@ public abstract class DatabaseProviderBase : IDatabaseProvider
         using var connection = CreateConnection();
         await OpenAsync(connection, cancellationToken).ConfigureAwait(false);
         return await connection.ExecuteAsync(
-                new CommandDefinition(BuildInsertSql(DatabaseEntityMap.Create<T>()), entity, cancellationToken: cancellationToken))
+                new CommandDefinition(GetOrBuildSql<T>(SqlKind.Insert), entity, cancellationToken: cancellationToken))
             .ConfigureAwait(false) > 0;
     }
 
@@ -167,20 +173,18 @@ public abstract class DatabaseProviderBase : IDatabaseProvider
     {
         ArgumentNullException.ThrowIfNull(entity);
 
-        var map = DatabaseEntityMap.Create<T>();
         using var connection = CreateOpenedConnection();
-        return connection.Execute(BuildUpdateSql(map), entity) > 0;
+        return connection.Execute(GetOrBuildSql<T>(SqlKind.Update), entity) > 0;
     }
 
     public async Task<bool> UpdateAsync<T>(T entity, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(entity);
 
-        var map = DatabaseEntityMap.Create<T>();
         using var connection = CreateConnection();
         await OpenAsync(connection, cancellationToken).ConfigureAwait(false);
         return await connection.ExecuteAsync(
-                new CommandDefinition(BuildUpdateSql(map), entity, cancellationToken: cancellationToken))
+                new CommandDefinition(GetOrBuildSql<T>(SqlKind.Update), entity, cancellationToken: cancellationToken))
             .ConfigureAwait(false) > 0;
     }
 
@@ -188,20 +192,18 @@ public abstract class DatabaseProviderBase : IDatabaseProvider
     {
         ArgumentNullException.ThrowIfNull(entity);
 
-        var map = DatabaseEntityMap.Create<T>();
         using var connection = CreateOpenedConnection();
-        return connection.Execute(BuildDeleteSql(map), entity) > 0;
+        return connection.Execute(GetOrBuildSql<T>(SqlKind.Delete), entity) > 0;
     }
 
     public async Task<bool> DeleteAsync<T>(T entity, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(entity);
 
-        var map = DatabaseEntityMap.Create<T>();
         using var connection = CreateConnection();
         await OpenAsync(connection, cancellationToken).ConfigureAwait(false);
         return await connection.ExecuteAsync(
-                new CommandDefinition(BuildDeleteSql(map), entity, cancellationToken: cancellationToken))
+                new CommandDefinition(GetOrBuildSql<T>(SqlKind.Delete), entity, cancellationToken: cancellationToken))
             .ConfigureAwait(false) > 0;
     }
 
@@ -253,6 +255,22 @@ public abstract class DatabaseProviderBase : IDatabaseProvider
     protected virtual string BuildPrimaryKeySql(DatabasePropertyMap property)
     {
         return " PRIMARY KEY";
+    }
+
+    private string GetOrBuildSql<T>(SqlKind kind)
+    {
+        var key = (typeof(T), Kind, kind);
+        return SqlCache.GetOrAdd(key, _ =>
+        {
+            var map = DatabaseEntityMap.Create<T>();
+            return kind switch
+            {
+                SqlKind.Insert => BuildInsertSql(map),
+                SqlKind.Update => BuildUpdateSql(map),
+                SqlKind.Delete => BuildDeleteSql(map),
+                _ => throw new ArgumentOutOfRangeException(nameof(kind))
+            };
+        });
     }
 
     private IDbConnection CreateOpenedConnection()
