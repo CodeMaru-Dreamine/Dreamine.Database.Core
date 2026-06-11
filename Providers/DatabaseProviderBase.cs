@@ -5,8 +5,15 @@ using Dreamine.Database.Core.Mapping;
 
 namespace Dreamine.Database.Core.Providers;
 
+/// <summary>
+/// Provides a base implementation for Dreamine database providers.
+/// </summary>
 public abstract class DatabaseProviderBase : IDatabaseProvider
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DatabaseProviderBase"/> class.
+    /// </summary>
+    /// <param name="connectionString">The provider connection string.</param>
     protected DatabaseProviderBase(string connectionString)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
@@ -211,7 +218,7 @@ public abstract class DatabaseProviderBase : IDatabaseProvider
             var sql = $"{QuoteIdentifier(property.ColumnName)} {GetSqlType(property)}";
             if (property.IsKey)
             {
-                sql += property.IsGenerated ? " PRIMARY KEY AUTOINCREMENT" : " PRIMARY KEY";
+                sql += BuildPrimaryKeySql(property);
             }
 
             return sql;
@@ -241,6 +248,11 @@ public abstract class DatabaseProviderBase : IDatabaseProvider
     {
         var key = RequireKey(map);
         return $"DELETE FROM {QuoteIdentifier(map.TableName)} WHERE {QuoteIdentifier(key.ColumnName)} = {ParameterPrefix}{key.Property.Name}";
+    }
+
+    protected virtual string BuildPrimaryKeySql(DatabasePropertyMap property)
+    {
+        return " PRIMARY KEY";
     }
 
     private IDbConnection CreateOpenedConnection()
