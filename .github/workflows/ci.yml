@@ -66,19 +66,22 @@ jobs:
         shell: pwsh
         run: |
           $scanner = Join-Path $env:RUNNER_TEMP "sonar-scanner\dotnet-sonarscanner.exe"
+          $projectBaseDir = Join-Path $env:GITHUB_WORKSPACE "src\Database.Core"
           & $scanner begin `
             "/k:$env:SONAR_PROJECT_KEY" `
             "/o:$env:SONAR_ORGANIZATION" `
             "/v:$env:SONAR_PROJECT_VERSION" `
             "/d:sonar.token=$env:SONAR_TOKEN" `
+            "/d:sonar.projectBaseDir=$projectBaseDir" `
+            "/d:sonar.scm.provider=git" `
             "/d:sonar.sourceEncoding=UTF-8" `
             "/d:sonar.qualitygate.wait=true" `
             "/d:sonar.qualitygate.timeout=300" `
             "/d:sonar.cs.opencover.reportsPaths=$env:RUNNER_TEMP\TestResults\**\coverage.opencover.xml" `
             "/d:sonar.cs.vstest.reportsPaths=$env:RUNNER_TEMP\TestResults\**\*.trx" `
-            "/d:sonar.exclusions=src/Database.Abstractions/**,**/bin/**,**/obj/**,**/TestResults/**" `
-            "/d:sonar.coverage.exclusions=src/Database.Core/tests/**" `
-            "/d:sonar.cpd.exclusions=src/Database.Core/tests/**"
+            "/d:sonar.exclusions=**/bin/**,**/obj/**,**/TestResults/**,**/*.png" `
+            "/d:sonar.coverage.exclusions=tests/**" `
+            "/d:sonar.cpd.exclusions=tests/**"
 
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
