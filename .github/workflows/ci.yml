@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  SONAR_PROJECT_KEY: CodeMaru-Dreamine_Dreamine.Database.Core
+  SONAR_ORGANIZATION: codemaru-dreamine
+  SONAR_PROJECT_VERSION: 1.0.1
+  SONAR_SCANNER_VERSION: 11.2.1
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+jobs:
+  build-test-analyze:
+    name: Build, test, and analyze
+    runs-on: windows-2025
+
+    steps:
+      - name: Checkout Database.Core
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          path: src/Database.Core
+          fetch-depth: 0
+
+      - name: Checkout Database.Abstractions dependency
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: CodeMaru-Dreamine/Dreamine.Database.Abstractions
+          path: src/Database.Abstractions
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install SonarScanner for .NET
+        if: >-
+          env.SONAR_TOKEN != '' &&
+          (github.ref == 'refs/heads/main' ||
+           (github.event_name == 'pull_request' &&
+            github.actor != 'dependabot[bot]' &&
+            github.event.pull_request.head.repo.full_name == github.repository))
+        shell: pwsh
+        run: |
+          dotnet tool install dotnet-sonarscanner `
+            --tool-path "$env:RUNNER_TEMP\sonar-scanner" `
+            --version "$env:SONAR_SCANNER_VERSION"
+
+      - name: Restore
+        run: dotnet restore "src/Database.Core/tests/Dreamine.Database.Core.Tests/Dreamine.Database.Core.Tests.csproj"
+
+      - name: Begin SonarCloud analysis
+        if: >-
+          env.SONAR_TOKEN != '' &&
+          (github.ref == 'refs/heads/main' ||
+           (github.event_name == 'pull_request' &&
+            github.actor != 'dependabot[bot]' &&
+            github.event.pull_request.head.repo.full_name == github.repository))
+        shell: pwsh
+        run: |
+          $scanner = Join-Path $env:RUNNER_TEMP "sonar-scanner\dotnet-sonarscanner.exe"
+          & $scanner begin `
+            "/k:$env:SONAR_PROJECT_KEY" `
+            "/o:$env:SONAR_ORGANIZATION" `
+            "/v:$env:SONAR_PROJECT_VERSION" `
+            "/d:sonar.token=$env:SONAR_TOKEN" `
+            "/d:sonar.sourceEncoding=UTF-8" `
+            "/d:sonar.qualitygate.wait=true" `
+            "/d:sonar.qualitygate.timeout=300" `
+            "/d:sonar.cs.opencover.reportsPaths=$env:RUNNER_TEMP\TestResults\**\coverage.opencover.xml" `
+            "/d:sonar.cs.vstest.reportsPaths=$env:RUNNER_TEMP\TestResults\**\*.trx" `
+            "/d:sonar.exclusions=src/Database.Abstractions/**,**/bin/**,**/obj/**,**/TestResults/**" `
+            "/d:sonar.coverage.exclusions=src/Database.Core/tests/**" `
+            "/d:sonar.cpd.exclusions=src/Database.Core/tests/**"
+
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build and test
+        shell: pwsh
+        run: |
+          dotnet test `
+            "src/Database.Core/tests/Dreamine.Database.Core.Tests/Dreamine.Database.Core.Tests.csproj" `
+            --no-restore `
+            --configuration Release `
+            -m:1 `
+            --verbosity minimal `
+            --collect:"XPlat Code Coverage" `
+            --settings "src/Database.Core/.github/coverlet.runsettings" `
+            --results-directory "$env:RUNNER_TEMP\TestResults" `
+            --logger "trx;LogFileName=database-core.trx"
+
+      - name: Pack
+        run: >-
+          dotnet pack
+          "src/Database.Core/Dreamine.Database.Core.csproj"
+          --no-restore
+          --configuration Release
+          --output "artifacts/packages"
+
+      - name: End SonarCloud analysis
+        if: >-
+          success() &&
+          env.SONAR_TOKEN != '' &&
+          (github.ref == 'refs/heads/main' ||
+           (github.event_name == 'pull_request' &&
+            github.actor != 'dependabot[bot]' &&
+            github.event.pull_request.head.repo.full_name == github.repository))
+        shell: pwsh
+        run: |
+          $scanner = Join-Path $env:RUNNER_TEMP "sonar-scanner\dotnet-sonarscanner.exe"
+          & $scanner end "/d:sonar.token=$env:SONAR_TOKEN"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -1,8 +1,12 @@
 # Dreamine.Database.Core
 
+[![CI](https://github.com/CodeMaru-Dreamine/Dreamine.Database.Core/actions/workflows/ci.yml/badge.svg)](https://github.com/CodeMaru-Dreamine/Dreamine.Database.Core/actions/workflows/ci.yml) [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=CodeMaru-Dreamine_Dreamine.Database.Core&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=CodeMaru-Dreamine_Dreamine.Database.Core) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=CodeMaru-Dreamine_Dreamine.Database.Core&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=CodeMaru-Dreamine_Dreamine.Database.Core) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=CodeMaru-Dreamine_Dreamine.Database.Core&metric=coverage)](https://sonarcloud.io/summary/new_code?id=CodeMaru-Dreamine_Dreamine.Database.Core)<br>
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE) ![.NET](https://img.shields.io/badge/.NET-8-512BD4.svg?logo=dotnet&logoColor=white) [![NuGet](https://img.shields.io/nuget/v/Dreamine.Database.Core.svg)](https://www.nuget.org/packages/Dreamine.Database.Core) [![NuGet Downloads](https://img.shields.io/nuget/dt/Dreamine.Database.Core.svg)](https://www.nuget.org/packages/Dreamine.Database.Core)<br>
+[![Docs](https://img.shields.io/badge/%F0%9F%93%96%20Docs-dreamine.kr-49B2FF.svg)](https://dreamine.kr/libraries?lang=en) [![Guide](https://img.shields.io/badge/%F0%9F%93%98%20Guide-dreamine.kr-49B2FF.svg)](https://dreamine.kr/guide?lang=en) [![Playground](https://img.shields.io/badge/%F0%9F%8E%AE%20Playground-dreamine.kr-49B2FF.svg)](https://dreamine.kr/playground?lang=en) [![Book](https://img.shields.io/badge/%F0%9F%93%96%20Book-Practical%20MVVM%20Architecture-000000.svg)](https://bookk.co.kr/bookStore/69c0f1b41461ec1ae849a0f6)
+
 `Dreamine.Database.Core` provides the shared runtime implementation used by concrete Dreamine database providers.
 
-[Korean documentation](./README_KO.md)
+[한국어 문서](./README_KO.md)
 
 ## Package Role
 
