@@ -6,7 +6,8 @@
         <Configuration>
           <Format>opencover</Format>
           <ExcludeByFile>**/bin/**;**/obj/**</ExcludeByFile>
-          <UseSourceLink>true</UseSourceLink>
+          <!-- SonarCloud resolves coverage against the checked-out files. -->
+          <UseSourceLink>false</UseSourceLink>
         </Configuration>
       </DataCollector>
     </DataCollectors>
