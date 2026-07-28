@@ -66,12 +66,13 @@ jobs:
         shell: pwsh
         run: |
           $scanner = Join-Path $env:RUNNER_TEMP "sonar-scanner\dotnet-sonarscanner.exe"
+          $projectBaseDir = Join-Path $env:GITHUB_WORKSPACE "src\Database.Core"
           & $scanner begin `
             "/k:$env:SONAR_PROJECT_KEY" `
             "/o:$env:SONAR_ORGANIZATION" `
             "/v:$env:SONAR_PROJECT_VERSION" `
             "/d:sonar.token=$env:SONAR_TOKEN" `
-            "/d:sonar.projectBaseDir=src/Database.Core" `
+            "/d:sonar.projectBaseDir=$projectBaseDir" `
             "/d:sonar.scm.provider=git" `
             "/d:sonar.sourceEncoding=UTF-8" `
             "/d:sonar.qualitygate.wait=true" `
